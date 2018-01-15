@@ -14,10 +14,17 @@ Das wird gemacht, bis eine vorgegebene Zeit (Loopzeit) beendet ist.
 Nach Ende der Loopzeit werden die gemessenen Werte pro Sensor gemittelt.
 Die gemittelten Temperaturdaten werden in eine LOG-Datei (CSV-Format) geschrieben.
 Davor werden weitere Tabellenfelder mit Zeit- und Zählerdaten gefüllt, und zwar:
+
 Spalte 1: Unix-Zeit in    [s]
+
 Spalte 2: Zeitstempel     [JJJJMMTTHHMMSS]
+
 Spalte 3: Laufzeit        seit Start in [h]
+
 Spalte 4: Log-Nummer      fortlaufende Nummerierung von 1 bis n
+
 Spalte 5: Messungen       Anzahl der Messungen pro Sensor innerhalb Loopzeit
+
 Spalte 6: CPU-Temperatur  [°C]
+
 Spalte 7-11: T01-T05		[°C]
