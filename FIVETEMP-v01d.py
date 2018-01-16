@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #FIVETEMP-v01.py
-#Copyright Dr. Mirko Schelp
+#Author Dr. Mirko Schelp
 #Temperaturmessungen 5 Stück
 #Hauptprogramm
 #Headerdefinition Logdatei (in der zweiten Zeile):
