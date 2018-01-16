@@ -1,7 +1,8 @@
 # FIVETEMP
 Es ist mein erstes kleines Projekt hier auf Github. Schau mer mal, wie das funktioniert ;-)  
 Der Code läuft aktuell in einem Test ohne Probleme. Es gibt noch ein paar Kleinigkeiten aber diese sind nicht weiter tragisch  
-(z.B. sind die Spaltenbeschriftungen nicht ganz korrekt, weil ich die Beschriftung für CPU vergessen habe)   
+(z.B. sind die Spaltenbeschriftungen nicht ganz korrekt, weil ich die Beschriftung für CPU vergessen habe)  
+Ausserdem sind noch ein paar Codefragmente aus einem anderen Programm drin, die ich noch entfernen muss. Update folgt.
 #### was macht das Programm grob?
 liest fünf digitale Temperatursensoren (DS18B20) und die CPU-Temperatur an einem Raspberry-Pi aus und speichert die Daten in einer CSV-Datei  
 #### Was macht das Programm im Detail?  
@@ -12,7 +13,7 @@ Das wird gemacht, bis eine vorgegebene Zeit (Loopzeit) beendet ist.
 Nach Ende der Loopzeit werden die gemessenen Werte pro Sensor gemittelt.  
 Die gemittelten Temperaturdaten werden in eine LOG-Datei (CSV-Format) geschrieben.  
 Davor werden weitere Tabellenfelder mit Zeit- und Zählerdaten gefüllt, und zwar:  
-
+#### Spalten CSV-Datei:
 Spalte 1: Unix-Zeit in [s]  
 Spalte 2: Zeitstempel [JJJJMMTTHHMMSS]  
 Spalte 3: Laufzeit seit Start in [h]  
