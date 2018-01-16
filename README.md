@@ -5,8 +5,8 @@ It is my first (real) repository here on github - let's see, how it works ;-)
 The code currently works in a test. There are some minor issues in the code
 (e.g. the header for the csv is not entirely correct but that does't matter for now).
 
-#[GERMAN]
-#Was macht das Programm?
+# [GERMAN]  
+# Was macht das Programm?  
 Es werden 5 Stück digitale Temperatursensoren (DS18B20) zyklisch ausgelesen.  
 Ein Plausibilitätscheck prüft grob die ausgelesenen Werte.   
 Zusätzlich wird die aktuelle CPU-Temperatur ausgelesen.  
