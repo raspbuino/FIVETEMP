@@ -4,7 +4,7 @@ The code currently works in a test without any problems. There are some minor is
 #### What does FIVETEMP roughly?
 Reading five temperature sensors (DS18B20) and the CPU-temperature on a Raspberry-Pi and store the data in a csv-file.  
 #### What does FIVETEMP in detail?  
-still to be translated (I amn tired now...)
+still to be translated (I am tired now...)
 
 Es werden 5 Stück digitale Temperatursensoren (DS18B20) zyklisch ausgelesen.  
 Ein Plausibilitätscheck prüft grob die ausgelesenen Werte.   
