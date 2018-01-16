@@ -1,10 +1,10 @@
 # FIVETEMP
-reading five temperature sensors (DS18B20) with a raspberry-pi and store the data in a csv-file.
-
-It is my first (real) repository here on github - let's see, how it works ;-)
-The code currently works in a test. There are some minor issues in the code
-(e.g. the header for the csv is not entirely correct but that does't matter for now).
-#### Was macht das Programm?  
+Es ist mein erstes kleines Projekt hier auf Github. Schau mer mal, wie das funktioniert ;-)  
+Der Code läuft aktuell in einem Test ohne Probleme. Es gibt noch ein paar Kleinigkeiten aber diese sind nicht weiter tragisch  
+(z.B. sind die Spaltenbeschriftungen nicht ganz korrekt, weil ich die Beschriftung für CPU vergessen habe)   
+#### was macht das Programm grob?
+liest fünf digitale Temperatursensoren (DS18B20) und die CPU-Temperatur an einem Raspberry-Pi aus und speichert die Daten in einer CSV-Datei  
+#### Was macht das Programm im Detail?  
 Es werden 5 Stück digitale Temperatursensoren (DS18B20) zyklisch ausgelesen.  
 Ein Plausibilitätscheck prüft grob die ausgelesenen Werte.   
 Zusätzlich wird die aktuelle CPU-Temperatur ausgelesen.  
