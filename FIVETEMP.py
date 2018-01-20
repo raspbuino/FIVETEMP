@@ -1,33 +1,58 @@
 #!/usr/bin/python3
-#FIVETEMP-v01.py
-#Author Dr. Mirko Schelp
-#Temperaturmessungen 5 Stück
-#Hauptprogramm
-#Headerdefinition Logdatei (in der zweiten Zeile):
-#A: "" leer (=> in der Zeile darüber, erste Spalte, Platz für Dateiname
-#B: "" leer (Platzhalter für DatumZeitStempel)
-#C: "t[h]" [TIME_lauf/3600] fortlaufende Zeit seit Programmstart in [h] mit 6 Stellen
-#D: "LogNr" [COUNTER_logs] fortlaufende Lognr / Messchleifen gesamt, egal ob N(Zyklen) oder timeout(Loop)
-#E: "N" [COUNTER_zykl] Lastspielzahl
-#F: "Anz" [COUNTER_mess] Anzahl Messungen im geloggerten Loop oder Zyklus
-#G: "TCPU" [TEMPCPU_valu] CPU-Temperatur
-#H+ [gemittelte Temperaturen] in [°C], Korrekturfaktor berücksichtigt
+#FIVETEMP
+#Temperaturmessungen 5 Stück + CPU-Temperatur, LOG-Dateien schreiben
 
-header = ["utime", "z-stamp", "t[h]", "LogNr", "Anz"] # wird unten dann erweitert
+#Version:   FIVETEMP-v02d.py
+#Datum:     20.JAN.2018
+#Author:    Dr. Mirko Schelp
+#alias:     raspbuino
+#===========================================================================
+#Sicher nicht alles im Code ist allein von mir.
+#Ich weiß aber nicht mehr, woher genau die einzelnen Schnipsel stammen.
+#Danke an alle, die ihr Wissen und Können veröffentlichen!
+#Nachmachen - Lernen - Selber machen und eigene Ideen entwickeln.
+#===========================================================================
 
-import RPi.GPIO as GPIO
-GPIO.setmode(GPIO.BCM) #Bezug auf die BCM-Nummerierung der Pins (also nicht die Pin-Nummern)
+#Was macht das Programm?
+# Es werden 5 Stück digitale Temperatursensoren (DS18B20) zyklisch ausgelesen.
+# Ein Plausibilitätscheck prüft grob die ausgelesenen Werte.
+# Zusätzlich wird die aktuelle CPU-Temperatur ausgelesen.
+# Das wird gemacht, bis eine vorgegebene Zeit (Loopzeit) beendet ist.
+# Nach Ende der Loopzeit werden die gemessenen Werte pro Sensor gemittelt.
+# Die gemittelten Temperaturdaten werden in eine LOG-Datei (CSV-Format) geschrieben
+# (Bei jedem Start wird eine neue LOG-Datei mit einer neuen Nummer angelegt).
+# Dabei werden weitere Tabellenfelder mit Zeit- und Zählerdaten gefüllt, und zwar:
+# Spalte 1: Unix-Zeit in    [s]
+# Spalte 2: Zeitstempel     [JJJJMMTTHHMMSS]
+# Spalte 3: Laufzeit        seit Start in [h]
+# Spalte 4: Log-Nummer      fortlaufende Nummerierung von 1 bis n
+# Spalte 5: Messungen       Anzahl der Messungen pro Sensor innerhalb Loopzeit
+# Spalte 6: CPU-Temperatur  [°C]
+# Spalte 7-11: T01-T05      [°C]
+
 import time
 import csv
 import os
 
-GPIO_input = 21        #BCM 21 ist GPIO29 ist Pin40
-GPIO_LED01 = 26        #BCM 26 ist GPIO25 ist Pin37 max 8mA
+#Header für CSV-Tabelle----------------------------------------------------
+header = ["unix-Zeit[s]", "Zeitstempel", "Laufzeit[h]", "LogNr", "Messungen"]
 
-GPIO.setup(GPIO_LED01, GPIO.OUT)
-GPIO.setup(GPIO_input, GPIO.IN)
+#Tupel mit den Bezeichnungen der einzelnen Sensorwerte DS18B20
+bez_DS = (
+    "T01",
+    "T02",
+    "T03",
+    "T04",
+    "T05"
+    )
+
+#erweitern des Headers um die Temperaturkanalbezeichnungen
+#CPU geht zunächst extra weil der Tupel mit den DS80B20 später separat benötigt wird
+header.extend("CPU")
+header.extend(bez_DS)
 
 #Pfade---------------------------------------------------------------------
+#INTENSO ist hier der Name meines USB-Sticks, die Pfade sind natürlich anzupassen
 pfad_LOG = "/media/pi/INTENSO/FIVETEMP-LOG/"
 pfad_EVE = "/media/pi/INTENSO/FIVETEMP-EVENTS/"
 pfad_CPU = "/sys/class/thermal/thermal_zone0/temp"
@@ -38,10 +63,9 @@ datei_NUM = 1                      #fortlaufende Dateinummer, Start bei 1 zur Pr
 datei_EVE = "FIVETEMP-EVENTS.txt"  #für Eventlogs
 
 #Variableninitiierung------------------------------------------------------
-LEDBCM1 = 4         #BCM 4 ist GPIO7 ist Pin7
-TIMEOUT_seku = 20   #[s] maximal erlaubte Loopzeit (ohne Erreichen Zyklusende)
+TIMEOUT_seku = 20   #[s] Loopzeit (Dauer für wiederholte Messloops)
 SLEEPER_seku = 1    #[s] Schlafzeit zwischen zwei Einzelmessungen
-UTIME = 0          #für unixzeit
+UTIME = 0           #für unixzeit
 
 COUNTER_mess = 0    #Anzahl Messungen (wegen Mittelwertbildung)
 COUNTER_logs = 0    #Anzahl Hauptloop (egal ob Timeout oder Zyklus)
@@ -53,18 +77,10 @@ TEMPCPU_last = 0    #Raspi CPU Temperatur letzter gueltiger Wert
 
 TIME_init = time.time()
 
-#Tupel mit den Bezeichnungen der einzelnen Sensorwerte DS18B20
-bez_DS = (
-    "T01",
-    "T02",
-    "T03",
-    "T04",
-    "T05"
-    )
-
-header.extend(bez_DS) #erweitern des Headers um die Temperaturkanalbezeichnungen
-
-#Tupel mit den Ordnern der 1W-Temperatursensoren
+#Tupel mit den Ordnern der 1W-Temperatursensoren---------------------------
+#muss individuell an die vorhandenen Sensoren angepasst werden
+#jeder DS18B20 hat eine global eindeutige Hex-Adresse
+#meine Sensoren haben folgende Adressen
 fol_1W = (
     "28-0415a4aa94ff",
     "28-0415a4cdf3ff",
@@ -73,36 +89,45 @@ fol_1W = (
     "28-011592a60dff"
     )
 
+#Anzahl Sensoren ermitteln:
 AnzTsens = len(fol_1W)
 
-#Zuordnung Adressen und Korrekturwert und Kabelbeschriftung
-#28-0415a4aa94ff  Tkorr:  0 Kabel TBD
-#28-0415a4cdf3ff  Tkorr:  0 Kabel TBD
-#28-0415a4d20bff  Tkorr:  0 Kabel TBD
-#28-0415a431fcff  Tkorr:  0 Kabel TBD
-#28-011592a60dff  Tkorr:  0 Kabel TBD
+#Zuordnung Adressen und Korrekturwert und ggf Kabelbeschriftung:
+#28-0415a4aa94ff  Tkorr:  0 Kabel Nr. TBD
+#28-0415a4cdf3ff  Tkorr:  0 Kabel Nr. TBD
+#28-0415a4d20bff  Tkorr:  0 Kabel Nr. TBD
+#28-0415a431fcff  Tkorr:  0 Kabel Nr. TBD
+#28-011592a60dff  Tkorr:  0 Kabel Nr. TBD
 
-#Tupel mit den Korrekturwerten der einzelnen Sensoren
+#Tupel mit den Korrekturwerten der einzelnen Sensoren:
 TEMPDS_korr = (0.000000, 0.000000, 0.000000, 0.000000, 0.000000)
-#Liste mit den Temperaturwerten
+#Liste mit den Temperaturwerten:
 TEMPDS_valu = [0,0,0,0,0]
-#Liste mit den Temperatursummenwerten
+#Liste mit den Temperatursummenwerten:
 TEMPDS_summ = [0,0,0,0,0]
-#Liste mit den letzten Temperaturwerten
+#Liste mit den letzten (gültigen) Temperaturwerten:
 TEMPDS_last = [0,0,0,0,0]
 
-
-#CSV Datei im LOG-Pfad anlegen mit nächster freier Nummer, Header schreiben
+#CSV Datei im LOG-Pfad anlegen mit nächster freier Nummer----------------
+#Zunächst den Namen der Datei ermitteln:
 while os.path.exists(pfad_LOG + datei_LOG + str(datei_NUM) + ".csv") == True:
     datei_NUM += 1
+
+#Gesamtpfad zusammenbauen:
 pfad_GES = pfad_LOG + datei_LOG + str(datei_NUM) + ".csv"
-Zeile2 = "TIMEOUT " + str(TIMEOUT_seku) + "s"
+
+#Zeile2 ermitteln (die Loopzeit soll in dieser Zeile mit in die CSV geschrieben werden)
+Zeile2 = "Loopzeit: " + str(TIMEOUT_seku) + "s"
+
+#drei Zeilen in die CSV schreiben (1: Pfad, 2: Zeile2, 3: Header für Wertetabelle)
 with open(pfad_GES, "x") as out:
     cw = csv.writer(out)
-    cw.writerow([pfad_GES])
-    cw.writerow([Zeile2])
-    cw.writerow(header)
-header = [] #wird nicht mehr weiter gebraucht
+    cw.writerow([pfad_GES])       #Zeile1
+    cw.writerow([Zeile2])         #Zeile2
+    cw.writerow(header)           #Zeile3
+
+#Leerputzen der header-Liste, da nicht mehr benötigt:
+header = []
 
 #Funktionen-------------------------------------------------------------
 #neuerLogeintrag => nur bei besonderen Events ein Eintrag mit Zeitstempel
@@ -118,9 +143,9 @@ def funct_Event(logtext):
         print("Event-Logfile nicht gefunden...")
 #-----------------------------------------------------------------------
 
-#Main
+#HAUPTPROGRAMM:
+
 funct_Event("Programmneustart")
-#TIME_init = time.time()
 
 while True:
     TIMEOUT_start = time.time() #Zuweisung der gerade aktuellen Zählerzeit
@@ -130,8 +155,7 @@ while True:
     while time.time() < TIMEOUT_start + TIMEOUT_seku: #Intervall rum ohne Zyklusende?
         COUNTER_mess += 1
 
-# PAUSE_oben (Temperaturmessungen NEU) ==================================
-        print("Arraymessung", COUNTER_mess, ":")
+# Temperaturmessungen
         for i in range(0, AnzTsens): #len(fol_1W)):
             try:
                 #Temperatur aus Datei einlesen
@@ -140,7 +164,6 @@ while True:
                 lines = file.readlines()
                 file.close()
                 while lines[0].strip()[-3:] != "YES":
-                    #time.sleep(0.8)
                     print("reading T one more time...")
                     file = open(sensor, "r")
                     lines = file.readlines()
@@ -158,8 +181,12 @@ while True:
                 Meldung = "Exception (A): IOError oder ValueError"
                 funct_Event(Meldung)
             TEMPDS_summ[i] = TEMPDS_summ[i] + TEMPDS_valu[i] #Messsumme bilden, so oder so
-            print("Einzelmessung", bez_DS[i], "=", TEMPDS_valu[i])
-        #print("Das war Temp-Arraymessung Nr", COUNTER_mess)
+
+        #Printausgabe der einzel ausgelesenen Werte (noch mit Faktor 1000) auf Bildschirm
+        strMessungen = "Messung" + str(COUNTER_mess) + ": "
+        for i in range(0, AnzTsens):
+            strMessungen = strMessungen + "  " + str(bez_DS[i]) + "=" + str(TEMPDS_valu[i])
+        print(strMessungen)
 
 #[TIMEOUT]-----------------------------------------------------------------------------------
     #CPU-Temperatur aus Datei einlesen
