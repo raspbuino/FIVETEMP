@@ -2,7 +2,7 @@
 Es ist mein erstes kleines Projekt hier auf Github. Schau mer mal, wie das funktioniert ;-)  
 Der Code (in Python3) lief aktuell in einem Test ohne Probleme.
 #### Was macht das Programm grob?
-liest fünf digitale Temperatursensoren (DS18B20) und die CPU-Temperatur an einem Raspberry-Pi aus und speichert die Daten in einer CSV-Datei  
+Es liest fünf digitale Temperatursensoren (DS18B20) und die CPU-Temperatur an einem Raspberry-Pi aus und speichert die Daten in einer CSV-Datei.  
 #### Was macht das Programm im Detail?
 Es werden 5 Stück digitale Temperatursensoren (DS18B20) zyklisch ausgelesen.  
 Ein Plausibilitätscheck prüft grob die ausgelesenen Werte.  
